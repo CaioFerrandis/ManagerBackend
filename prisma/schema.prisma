@@ -3,8 +3,9 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql" 
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 enum Roles {
@@ -18,11 +19,18 @@ model User {
   id            Int      @id @default(autoincrement())
   name          String?
   email         String   @unique
+
   company_name  String
-  company_id    Int      @unique
-  hash_password String   @unique
+  company_id    Int
+  company       Company  @relation(fields: [company_id], references: [id], onDelete: Cascade)
+
+  hash_password String
   role          Roles
   key           String   @unique
+
+  team_id       Int?
+  team          Team?    @relation(fields: [team_id], references: [id], onDelete: SetNull)
+
   updatedAt     DateTime @updatedAt
 }
 
@@ -36,10 +44,76 @@ model Key {
     code       String    @unique
     company_id Int
     status     KeyStatus
+    role       String
+    bound_user String
+}
+
+enum AtividadeStatus {
+  PENDENTE
+  CONCLUIDA
+  CANCELADA
 }
 
 model Company {
-    id    Int    @id @default(autoincrement())
-    owner String
+  id    Int     @id @default(autoincrement())
+  name  String
+  owner String?
+
+  users      User[]
+  teams      Team[]
+  forms      Form[]
+  atividades Atividade[]
 }
 
+model Team {
+  id   Int    @id @default(autoincrement())
+  name String
+
+  company_id Int
+  company    Company @relation(fields: [company_id], references: [id], onDelete: Cascade)
+
+  members    User[]
+  atividades Atividade[]
+}
+
+model Form {
+  id          Int      @id @default(autoincrement())
+  title       String
+  description String?
+  duration    Int      @default(0)
+  linkedTo    String?  @map("linked_to")
+  questions   Json
+  company_id  Int      
+  company     Company  @relation(fields: [company_id], references: [id], onDelete: Cascade)
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  atividades Atividade[]
+
+  @@map("forms")
+}
+
+model Atividade {
+  id            Int             @id @default(autoincrement())
+  titulo        String
+  descricao     String?
+  horario       String
+  data          DateTime        @db.Date
+  status        AtividadeStatus @default(PENDENTE)
+  cor           String?         @default("bg-blue-500")
+  form_resposta Json?           @map("form_resposta")
+
+  company_id Int
+  company    Company @relation(fields: [company_id], references: [id], onDelete: Cascade)
+
+  team_id Int?
+  team    Team? @relation(fields: [team_id], references: [id], onDelete: SetNull)
+
+  form_id Int?
+  form    Form? @relation(fields: [form_id], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("atividades")
+}

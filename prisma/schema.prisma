@@ -9,10 +9,10 @@ datasource db {
 }
 
 enum Roles {
-    OWNER
-    MANAGER
-    EMPLOYEE
-    CLIENT
+  OWNER
+  MANAGER
+  EMPLOYEE
+  CLIENT
 }
 
 model User {
@@ -31,21 +31,43 @@ model User {
   team_id       Int?
   team          Team?    @relation(fields: [team_id], references: [id], onDelete: SetNull)
 
+  client_info   ClientInfo?
+
   updatedAt     DateTime @updatedAt
+
+  equipamentos Equipamento[]
 }
 
-enum KeyStatus{
-    USED
-    AVAILABLE
+model ClientInfo {
+  id         Int      @id @default(autoincrement())
+  user_id    Int      @unique
+  user       User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  nome       String
+  documento  String?  // CPF / CNPJ
+  email      String?
+  telefone   String?
+  endereco   String?
+  avatar_url String?
+
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  @@map("client_info")
+}
+
+enum KeyStatus {
+  USED
+  AVAILABLE
 }
 
 model Key {
-    id         Int       @id @default(autoincrement())
-    code       String    @unique
-    company_id Int
-    status     KeyStatus
-    role       String
-    bound_user String
+  id         Int       @id @default(autoincrement())
+  code       String    @unique
+  company_id Int
+  status     KeyStatus
+  role       String
+  bound_user String
 }
 
 enum AtividadeStatus {
@@ -59,10 +81,16 @@ model Company {
   name  String
   owner String?
 
-  users      User[]
-  teams      Team[]
-  forms      Form[]
-  atividades Atividade[]
+  primary_color   String? @default("#1e293b")
+  secondary_color String? @default("#334155")
+  button_color    String? @default("#2563eb")
+  logo_url        String? @db.Text 
+
+  users        User[]
+  teams        Team[]
+  forms        Form[]
+  atividades   Atividade[]
+  equipamentos Equipamento[]
 }
 
 model Team {
@@ -83,7 +111,7 @@ model Form {
   duration    Int      @default(0)
   linkedTo    String?  @map("linked_to")
   questions   Json
-  company_id  Int      
+  company_id  Int     
   company     Company  @relation(fields: [company_id], references: [id], onDelete: Cascade)
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
@@ -116,4 +144,21 @@ model Atividade {
   updatedAt DateTime @updatedAt @map("updated_at")
 
   @@map("atividades")
+}
+
+model Equipamento {
+  id         Int      @id @default(autoincrement())
+  nome       String
+  atributos  Json
+
+  company_id Int
+  company    Company  @relation(fields: [company_id], references: [id], onDelete: Cascade)
+
+  client_id  Int
+  client     User     @relation(fields: [client_id], references: [id], onDelete: Cascade)
+
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  @@map("equipamentos")
 }

@@ -28,6 +28,8 @@ model User {
   role          Roles
   key           String   @unique
 
+  avatar_url    String? 
+
   team_id       Int?
   team          Team?    @relation(fields: [team_id], references: [id], onDelete: SetNull)
 
@@ -39,19 +41,24 @@ model User {
 }
 
 model ClientInfo {
-  id         Int      @id @default(autoincrement())
-  user_id    Int      @unique
-  user       User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  id           Int      @id @default(autoincrement())
+  user_id      Int      @unique
+  user         User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
 
-  nome       String
-  documento  String?  // CPF / CNPJ
-  email      String?
-  telefone   String?
-  endereco   String?
-  avatar_url String?
+  nome         String
+  documento    String?  // CPF / CNPJ
+  email        String?
+  telefone     String?
+  endereco     String?
+  avatar_url   String?
 
-  createdAt  DateTime @default(now()) @map("created_at")
-  updatedAt  DateTime @updatedAt @map("updated_at")
+  agendadas    Int      @default(0)
+  concluidas   Int      @default(0)
+  canceladas   Int      @default(0)
+  ultima_visita DateTime?
+
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
 
   @@map("client_info")
 }

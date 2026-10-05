@@ -3,9 +3,8 @@ generator client {
 }
 
 datasource db {
-  provider  = "postgresql"
-  url       = env("DATABASE_URL")
-  directUrl = env("DIRECT_URL")
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
 }
 
 enum Roles {
@@ -37,28 +36,29 @@ model User {
 
   updatedAt     DateTime @updatedAt
 
-  equipamentos Equipamento[]
+  equipamentos  Equipamento[]
+  atividades    Atividade[]   // 👈 Relação inversa das atividades associadas ao cliente
 }
 
 model ClientInfo {
-  id           Int      @id @default(autoincrement())
-  user_id      Int      @unique
-  user         User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  id            Int      @id @default(autoincrement())
+  user_id       Int      @unique
+  user          User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
 
-  nome         String
-  documento    String?  // CPF / CNPJ
-  email        String?
-  telefone     String?
-  endereco     String?
-  avatar_url   String?
+  nome          String
+  documento     String?  // CPF / CNPJ
+  email         String?
+  telefone      String?
+  endereco      String?
+  avatar_url    String?
 
-  agendadas    Int      @default(0)
-  concluidas   Int      @default(0)
-  canceladas   Int      @default(0)
+  agendadas     Int      @default(0)
+  concluidas    Int      @default(0)
+  canceladas    Int      @default(0)
   ultima_visita DateTime?
 
-  createdAt    DateTime @default(now()) @map("created_at")
-  updatedAt    DateTime @updatedAt @map("updated_at")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
 
   @@map("client_info")
 }
@@ -88,9 +88,9 @@ model Company {
   name  String
   owner String?
 
-  primary_color   String? @default("#1e293b")
-  secondary_color String? @default("#334155")
-  button_color    String? @default("#2563eb")
+  primary_color   String? @default("#1a2b59")
+  secondary_color String? @default("#152347")
+  button_color    String? @default("#253d7e")
   logo_url        String? @db.Text 
 
   users        User[]
@@ -118,7 +118,7 @@ model Form {
   duration    Int      @default(0)
   linkedTo    String?  @map("linked_to")
   questions   Json
-  company_id  Int     
+  company_id  Int      
   company     Company  @relation(fields: [company_id], references: [id], onDelete: Cascade)
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
@@ -147,6 +147,12 @@ model Atividade {
   form_id Int?
   form    Form? @relation(fields: [form_id], references: [id], onDelete: SetNull)
 
+  client_id Int
+  client    User @relation(fields: [client_id], references: [id], onDelete: Cascade)
+
+  equipment_id Int?
+  equipment    Equipamento? @relation(fields: [equipment_id], references: [id], onDelete: SetNull)
+
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
@@ -163,6 +169,8 @@ model Equipamento {
 
   client_id  Int
   client     User     @relation(fields: [client_id], references: [id], onDelete: Cascade)
+
+  atividades Atividade[]
 
   createdAt  DateTime @default(now()) @map("created_at")
   updatedAt  DateTime @updatedAt @map("updated_at")

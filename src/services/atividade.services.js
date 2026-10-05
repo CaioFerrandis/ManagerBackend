@@ -35,6 +35,8 @@ export class AtividadeService {
       include: {
         team: { select: { id: true, name: true } },
         form: { select: { id: true, title: true, questions: true } },
+        client: { select: { id: true, name: true } },
+        equipment: { select: { id: true, nome: true } },
       },
       orderBy: [{ data: "asc" }, { horario: "asc" }],
     });
@@ -52,10 +54,16 @@ export class AtividadeService {
       data,
       equipeId,
       formId,
+      clientId,
+      equipmentId,
       isRecurrent,
       recurrentDays,
       recurrentMonths = 1,
     } = dto;
+
+    if (!clientId) {
+      throw new Error("O cliente é obrigatório para criar a atividade.");
+    }
 
     const baseData = {
       titulo,
@@ -64,6 +72,8 @@ export class AtividadeService {
       company_id: Number(companyId),
       team_id: equipeId ? Number(equipeId) : null,
       form_id: formId ? Number(formId) : null,
+      client_id: Number(clientId),
+      equipment_id: equipmentId ? Number(equipmentId) : null,
       cor: equipeId ? "bg-purple-500" : "bg-blue-500",
       status: "PENDENTE",
     };
@@ -73,6 +83,11 @@ export class AtividadeService {
         data: {
           ...baseData,
           data: new Date(data),
+        },
+        include: {
+          team: { select: { id: true, name: true } },
+          client: { select: { id: true, name: true } },
+          equipment: { select: { id: true, nome: true } },
         },
       });
     }
@@ -116,6 +131,17 @@ export class AtividadeService {
     if (dto.formId !== undefined) {
       dataToUpdate.form_id = dto.formId ? Number(dto.formId) : null;
       delete dataToUpdate.formId;
+    }
+    if (dto.clientId !== undefined) {
+      if (!dto.clientId) {
+        throw new Error("O cliente não pode ser nulo.");
+      }
+      dataToUpdate.client_id = Number(dto.clientId);
+      delete dataToUpdate.clientId;
+    }
+    if (dto.equipmentId !== undefined) {
+      dataToUpdate.equipment_id = dto.equipmentId ? Number(dto.equipmentId) : null;
+      delete dataToUpdate.equipmentId;
     }
 
     delete dataToUpdate.company_id;

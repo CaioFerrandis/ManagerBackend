@@ -51,6 +51,11 @@ export class AtividadeController {
         return;
       }
 
+      if (!req.body.clientId) {
+        res.status(400).json({ error: "clientId é obrigatório." });
+        return;
+      }
+
       const result = await atividadeService.create(Number(companyId), role, req.body);
       res.status(201).json(result);
     } catch (err) {

@@ -24,7 +24,7 @@ export class EquipamentoService {
 
   async create(companyId, data) {
     const compId = Number(companyId);
-    const { nome, clienteId, atributos } = data;
+    const { nome, clienteId, atributos, foto_url } = data; // 👈 foto_url adicionado
 
     if (!nome) throw new Error("O nome do equipamento é obrigatório.");
     if (!clienteId) throw new Error("O cliente proprietário é obrigatório.");
@@ -34,6 +34,7 @@ export class EquipamentoService {
         nome: String(nome).trim(),
         company_id: compId,
         client_id: Number(clienteId),
+        foto_url: foto_url || null, // 👈 Persiste a foto no banco
         atributos: Array.isArray(atributos) ? atributos : [],
       },
     });
@@ -42,7 +43,7 @@ export class EquipamentoService {
   async update(id, companyId, data) {
     const equipId = Number(id);
     const compId = Number(companyId);
-    const { nome, clienteId, atributos } = data;
+    const { nome, clienteId, atributos, foto_url } = data; // 👈 foto_url adicionado
 
     const existing = await prisma.equipamento.findFirst({
       where: { id: equipId, company_id: compId },
@@ -57,6 +58,7 @@ export class EquipamentoService {
       data: {
         ...(nome && { nome: String(nome).trim() }),
         ...(clienteId && { client_id: Number(clienteId) }),
+        ...(foto_url !== undefined && { foto_url: foto_url || null }), // 👈 Atualiza a foto (aceita null para remover)
         ...(atributos && { atributos: Array.isArray(atributos) ? atributos : [] }),
       },
     });

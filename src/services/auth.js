@@ -3,7 +3,9 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 
 export async function registerServices({ name, email, password, accountType, companyName, key }) {
-  const userExists = await prisma.user.findUnique({ where: { email } });
+  const cleanEmail = String(email).trim().toLowerCase();
+
+  const userExists = await prisma.user.findUnique({ where: { email: cleanEmail } });
 
   if (userExists) {
     throw new Error('E-mail já cadastrado.');
@@ -19,7 +21,7 @@ export async function registerServices({ name, email, password, accountType, com
 
       const newCompany = await tx.company.create({
         data: {
-          name: companyName,
+          name: companyName.trim(),
         },
       });
 
@@ -27,11 +29,11 @@ export async function registerServices({ name, email, password, accountType, com
 
       const user = await tx.user.create({
         data: {
-          name,
-          email,
+          name: name.trim(),
+          email: cleanEmail,
           hash_password: hashedPassword,
           role: 'OWNER',
-          company_name: companyName,
+          company_name: companyName.trim(),
           company_id: newCompany.id,
           key: ownerKey,
         },
@@ -39,7 +41,7 @@ export async function registerServices({ name, email, password, accountType, com
 
       await tx.company.update({
         where: { id: newCompany.id },
-        data: { owner: name },
+        data: { owner: name.trim() },
       });
 
       return user;
@@ -67,12 +69,14 @@ export async function registerServices({ name, email, password, accountType, com
         throw new Error('Empresa associada à chave não foi encontrada.');
       }
 
+      const userRole = (validKey.role || 'MANAGER').toUpperCase();
+
       const user = await tx.user.create({
         data: {
-          name,
-          email,
+          name: name.trim(),
+          email: cleanEmail,
           hash_password: hashedPassword,
-          role: validKey.role,
+          role: userRole,
           company_name: company.name,
           company_id: company.id,
           key: validKey.code,
@@ -95,10 +99,16 @@ export async function registerServices({ name, email, password, accountType, com
   });
 
   const { hash_password: _, ...userWithoutPassword } = newUser;
-  return userWithoutPassword;
+  return {
+    ...userWithoutPassword,
+    role: newUser.role.toUpperCase()
+  };
 }
+
 export async function loginServices(email, password) {
-  const user = await prisma.user.findUnique({ where: { email } });
+  const cleanEmail = String(email).trim().toLowerCase();
+
+  const user = await prisma.user.findUnique({ where: { email: cleanEmail } });
 
   if (!user) {
     throw new Error('Credenciais inválidas.');
@@ -110,8 +120,14 @@ export async function loginServices(email, password) {
     throw new Error('Credenciais inválidas.');
   }
 
+  const normalizedRole = user.role ? user.role.toUpperCase() : 'MANAGER';
+
   const token = jwt.sign(
-    { id: user.id, role: user.role, company_id: user.company_id },
+    { 
+      id: user.id, 
+      role: normalizedRole, 
+      company_id: user.company_id 
+    },
     process.env.JWT_SECRET || 'default_secret',
     { expiresIn: '1d' }
   );
@@ -122,8 +138,9 @@ export async function loginServices(email, password) {
       id: user.id,
       name: user.name, 
       email: user.email, 
-      role: user.role, 
-      company_id: user.company_id 
+      role: normalizedRole, // 👈 Garante sanitização de caixa alta para o frontend
+      company_id: user.company_id,
+      company_name: user.company_name
     }
   };
 }

@@ -37,7 +37,7 @@ model User {
   updatedAt     DateTime @updatedAt
 
   equipamentos  Equipamento[]
-  atividades    Atividade[]   // 👈 Relação inversa das atividades associadas ao cliente
+  atividades    Atividade[]
 }
 
 model ClientInfo {
@@ -163,6 +163,7 @@ model Equipamento {
   id         Int      @id @default(autoincrement())
   nome       String
   atributos  Json
+  foto_url   String?  @db.Text
 
   company_id Int
   company    Company  @relation(fields: [company_id], references: [id], onDelete: Cascade)

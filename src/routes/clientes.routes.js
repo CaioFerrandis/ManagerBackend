@@ -8,6 +8,7 @@ const clientController = new ClientController();
 clientesRouter.use(authMiddleware);
 
 clientesRouter.get("", clientController.index);
+clientesRouter.post("", clientController.create);
 clientesRouter.post("/import", clientController.import);
 clientesRouter.put("/:id", clientController.update);
 clientesRouter.delete("/batch", clientController.deleteMany);

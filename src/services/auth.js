@@ -53,8 +53,14 @@ export async function registerServices({ name, email, password, accountType, com
 
       const normalizedKey = key.trim().replace(/\s+/g, '');
 
-      const validKey = await tx.key.findUnique({
-        where: { code: normalizedKey },
+      const validKey = await tx.key.findFirst({
+        where: {
+          OR: [
+            { code: normalizedKey },
+            { key: normalizedKey }
+          ]
+        },
+        include: { client_info: true }
       });
 
       if (!validKey || validKey.status === 'USED') {
@@ -69,17 +75,19 @@ export async function registerServices({ name, email, password, accountType, com
         throw new Error('Empresa associada à chave não foi encontrada.');
       }
 
-      const userRole = (validKey.role || 'MANAGER').toUpperCase();
+      const userRole = (validKey.role || 'CLIENT').toUpperCase();
+
+      const finalName = name.trim() || validKey.client_info?.nome || 'Cliente';
 
       const user = await tx.user.create({
         data: {
-          name: name.trim(),
+          name: finalName,
           email: cleanEmail,
           hash_password: hashedPassword,
           role: userRole,
           company_name: company.name,
           company_id: company.id,
-          key: validKey.code,
+          key: validKey.code || validKey.key,
         },
       });
 
@@ -87,7 +95,12 @@ export async function registerServices({ name, email, password, accountType, com
         where: { id: validKey.id },
         data: { 
           status: 'USED',
-          bound_user: user.email
+          bound_user: user.email,
+          ...(validKey.client_info && {
+            client_info: {
+              update: { email: cleanEmail }
+            }
+          })
         },
       });
 
@@ -120,7 +133,7 @@ export async function loginServices(email, password) {
     throw new Error('Credenciais inválidas.');
   }
 
-  const normalizedRole = user.role ? user.role.toUpperCase() : 'MANAGER';
+  const normalizedRole = user.role ? user.role.toUpperCase() : 'CLIENT';
 
   const token = jwt.sign(
     { 
@@ -138,7 +151,7 @@ export async function loginServices(email, password) {
       id: user.id,
       name: user.name, 
       email: user.email, 
-      role: normalizedRole, // 👈 Garante sanitização de caixa alta para o frontend
+      role: normalizedRole,
       company_id: user.company_id,
       company_name: user.company_name
     }

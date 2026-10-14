@@ -27,7 +27,12 @@ export class EquipamentoController {
         return res.status(400).json({ error: "company_id não informado." });
       }
 
-      const equipamento = await equipamentoService.create(Number(companyId), req.body);
+      const payload = {
+        ...req.body,
+        keyId: req.body.keyId || req.body.key_id || req.body.clienteId,
+      };
+
+      const equipamento = await equipamentoService.create(Number(companyId), payload);
       return res.status(201).json(equipamento);
     } catch (err) {
       console.error("Erro em EquipamentoController.store:", err);
@@ -44,10 +49,15 @@ export class EquipamentoController {
         return res.status(400).json({ error: "company_id não informado." });
       }
 
+      const payload = {
+        ...req.body,
+        keyId: req.body.keyId || req.body.key_id || req.body.clienteId,
+      };
+
       const equipamento = await equipamentoService.update(
         Number(id),
         Number(companyId),
-        req.body
+        payload
       );
 
       return res.json(equipamento);
@@ -74,6 +84,27 @@ export class EquipamentoController {
     }
   }
 
+  async destroyMany(req, res) {
+    try {
+      const companyId = req.user?.company_id || req.body.company_id || req.query.company_id;
+      const { ids } = req.body;
+
+      if (!companyId) {
+        return res.status(400).json({ error: "company_id não informado." });
+      }
+
+      if (!ids || !Array.isArray(ids) || ids.length === 0) {
+        return res.status(400).json({ error: "Lista de IDs inválida ou vazia." });
+      }
+
+      const result = await equipamentoService.deleteMany(ids, Number(companyId));
+      return res.json(result);
+    } catch (err) {
+      console.error("Erro em EquipamentoController.destroyMany:", err);
+      return res.status(400).json({ error: err.message });
+    }
+  }
+
   async import(req, res) {
     try {
       const companyId = req.user?.company_id || req.body.company_id;
@@ -91,7 +122,7 @@ export class EquipamentoController {
       return res.status(201).json(result);
     } catch (err) {
       console.error("Erro em EquipamentoController.import:", err);
-      return res.status(500).json({ error: err.message || "Erro interno ao importar equipamentos." });
+      return res.status(400).json({ error: err.message || "Erro interno ao importar equipamentos." });
     }
   }
 }

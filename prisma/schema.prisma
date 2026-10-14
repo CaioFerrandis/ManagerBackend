@@ -15,50 +15,53 @@ enum Roles {
 }
 
 model User {
-  id            Int      @id @default(autoincrement())
+  id            Int         @id @default(autoincrement())
   name          String?
-  email         String   @unique
+  email         String      @unique
 
   company_name  String
   company_id    Int
-  company       Company  @relation(fields: [company_id], references: [id], onDelete: Cascade)
+  company       Company     @relation(fields: [company_id], references: [id], onDelete: Cascade)
 
   hash_password String
   role          Roles
-  key           String   @unique
+  key           String      @unique
 
   avatar_url    String? 
 
   team_id       Int?
-  team          Team?    @relation(fields: [team_id], references: [id], onDelete: SetNull)
+  team          Team?       @relation(fields: [team_id], references: [id], onDelete: SetNull)
 
   client_info   ClientInfo?
 
-  updatedAt     DateTime @updatedAt
+  updatedAt     DateTime    @updatedAt
 
-  equipamentos  Equipamento[]
   atividades    Atividade[]
 }
 
 model ClientInfo {
-  id            Int      @id @default(autoincrement())
-  user_id       Int      @unique
-  user          User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  id            Int       @id @default(autoincrement())
+  
+  user_id       Int?      @unique
+  user          User?     @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  key_id        Int?      @unique
+  key           Key?      @relation(fields: [key_id], references: [id], onDelete: Cascade)
 
   nome          String
-  documento     String?  // CPF / CNPJ
+  documento     String?   // CPF / CNPJ
   email         String?
   telefone      String?
   endereco      String?
   avatar_url    String?
 
-  agendadas     Int      @default(0)
-  concluidas    Int      @default(0)
-  canceladas    Int      @default(0)
+  agendadas     Int       @default(0)
+  concluidas    Int       @default(0)
+  canceladas    Int       @default(0)
   ultima_visita DateTime?
 
-  createdAt     DateTime @default(now()) @map("created_at")
-  updatedAt     DateTime @updatedAt @map("updated_at")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
 
   @@map("client_info")
 }
@@ -66,15 +69,19 @@ model ClientInfo {
 enum KeyStatus {
   USED
   AVAILABLE
+  IN_USE // for clients created but not registered
 }
 
 model Key {
-  id         Int       @id @default(autoincrement())
-  code       String    @unique
-  company_id Int
-  status     KeyStatus
-  role       String
-  bound_user String
+  id          Int           @id @default(autoincrement())
+  code        String        @unique
+  company_id  Int
+  status      KeyStatus
+  role        String
+  bound_user  String? 
+
+  client_info  ClientInfo?
+  equipamentos Equipamento[]
 }
 
 enum AtividadeStatus {
@@ -84,46 +91,46 @@ enum AtividadeStatus {
 }
 
 model Company {
-  id    Int     @id @default(autoincrement())
-  name  String
-  owner String?
+  id              Int           @id @default(autoincrement())
+  name            String
+  owner           String?
 
-  primary_color   String? @default("#1a2b59")
-  secondary_color String? @default("#152347")
-  button_color    String? @default("#253d7e")
-  logo_url        String? @db.Text 
+  primary_color   String?       @default("#1a2b59")
+  secondary_color String?       @default("#152347")
+  button_color    String?       @default("#253d7e")
+  logo_url        String?       @db.Text 
 
-  users        User[]
-  teams        Team[]
-  forms        Form[]
-  atividades   Atividade[]
-  equipamentos Equipamento[]
+  users           User[]
+  teams           Team[]
+  forms           Form[]
+  atividades      Atividade[]
+  equipamentos    Equipamento[]
 }
 
 model Team {
-  id   Int    @id @default(autoincrement())
-  name String
+  id         Int         @id @default(autoincrement())
+  name       String
 
   company_id Int
-  company    Company @relation(fields: [company_id], references: [id], onDelete: Cascade)
+  company    Company     @relation(fields: [company_id], references: [id], onDelete: Cascade)
 
   members    User[]
   atividades Atividade[]
 }
 
 model Form {
-  id          Int      @id @default(autoincrement())
+  id          Int         @id @default(autoincrement())
   title       String
   description String?
-  duration    Int      @default(0)
-  linkedTo    String?  @map("linked_to")
+  duration    Int         @default(0)
+  linkedTo    String?     @map("linked_to")
   questions   Json
-  company_id  Int      
-  company     Company  @relation(fields: [company_id], references: [id], onDelete: Cascade)
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
+  company_id  Int        
+  company     Company     @relation(fields: [company_id], references: [id], onDelete: Cascade)
+  createdAt   DateTime    @default(now()) @map("created_at")
+  updatedAt   DateTime    @updatedAt @map("updated_at")
 
-  atividades Atividade[]
+  atividades  Atividade[]
 
   @@map("forms")
 }
@@ -138,23 +145,23 @@ model Atividade {
   cor           String?         @default("bg-blue-500")
   form_resposta Json?           @map("form_resposta")
 
-  company_id Int
-  company    Company @relation(fields: [company_id], references: [id], onDelete: Cascade)
+  company_id    Int
+  company       Company         @relation(fields: [company_id], references: [id], onDelete: Cascade)
 
-  team_id Int?
-  team    Team? @relation(fields: [team_id], references: [id], onDelete: SetNull)
+  team_id       Int?
+  team          Team?           @relation(fields: [team_id], references: [id], onDelete: SetNull)
 
-  form_id Int?
-  form    Form? @relation(fields: [form_id], references: [id], onDelete: SetNull)
+  form_id       Int?
+  form          Form?           @relation(fields: [form_id], references: [id], onDelete: SetNull)
 
-  client_id Int
-  client    User @relation(fields: [client_id], references: [id], onDelete: Cascade)
+  client_id     Int
+  client        User            @relation(fields: [client_id], references: [id], onDelete: Cascade)
 
-  equipment_id Int?
-  equipment    Equipamento? @relation(fields: [equipment_id], references: [id], onDelete: SetNull)
+  equipment_id  Int?
+  equipment     Equipamento?    @relation(fields: [equipment_id], references: [id], onDelete: SetNull)
 
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
+  createdAt     DateTime        @default(now()) @map("created_at")
+  updatedAt     DateTime        @updatedAt @map("updated_at")
 
   @@map("atividades")
 }
@@ -168,8 +175,8 @@ model Equipamento {
   company_id Int
   company    Company  @relation(fields: [company_id], references: [id], onDelete: Cascade)
 
-  client_id  Int
-  client     User     @relation(fields: [client_id], references: [id], onDelete: Cascade)
+  key_id     Int
+  key        Key      @relation(fields: [key_id], references: [id], onDelete: Cascade)
 
   atividades Atividade[]
 

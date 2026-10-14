@@ -3,6 +3,7 @@ import { ClientService } from "../services/clientes.services.js";
 const clientService = new ClientService();
 
 export class ClientController {
+  // 🔹 Lista todos os clientes
   async index(req, res) {
     try {
       const companyId = req.user?.company_id || req.query.company_id;
@@ -18,6 +19,23 @@ export class ClientController {
     }
   }
 
+  // 🔹 Cria um único cliente (Dono/Gerente cadastrando manualmente)
+  async create(req, res) {
+    try {
+      const companyId = req.user?.company_id || req.body.company_id;
+
+      if (!companyId) {
+        return res.status(400).json({ error: "company_id não informado." });
+      }
+
+      const client = await clientService.createOne(Number(companyId), req.body);
+      return res.status(201).json(client);
+    } catch (err) {
+      return res.status(400).json({ error: err.message });
+    }
+  }
+
+  // 🔹 Atualiza dados do perfil do cliente
   async update(req, res) {
     try {
       const { id } = req.params;
@@ -42,6 +60,7 @@ export class ClientController {
     }
   }
 
+  // 🔹 Importação via CSV em lote
   async import(req, res) {
     try {
       const companyId = req.user?.company_id || req.body.company_id;
@@ -62,26 +81,7 @@ export class ClientController {
     }
   }
 
-  async deleteMany(req, res) {
-    try {
-      const companyId = req.user?.company_id || req.body.company_id;
-      const { ids } = req.body;
-
-      if (!companyId) {
-        return res.status(400).json({ error: "company_id não informado." });
-      }
-
-      if (!ids || !Array.isArray(ids) || ids.length === 0) {
-        return res.status(400).json({ error: "Nenhum cliente selecionado para exclusão." });
-      }
-
-      const result = await clientService.deleteMany(Number(companyId), ids);
-      return res.json({ message: "Clientes excluídos com sucesso!", count: result.count });
-    } catch (err) {
-      return res.status(400).json({ error: err.message });
-    }
-  }
-
+  // 🔹 Exclusão em lote
   async deleteMany(req, res) {
     try {
       const companyId = req.user?.company_id || req.body.company_id;

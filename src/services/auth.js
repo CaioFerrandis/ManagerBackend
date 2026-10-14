@@ -119,11 +119,20 @@ export async function registerServices({ name, email, password, accountType, com
 }
 
 export async function loginServices(email, password) {
+  if (!email || !password) {
+    throw new Error('E-mail e senha são obrigatórios.');
+  }
+
   const cleanEmail = String(email).trim().toLowerCase();
 
   const user = await prisma.user.findUnique({ where: { email: cleanEmail } });
 
   if (!user) {
+    throw new Error('Credenciais inválidas.');
+  }
+
+  if (!user.hash_password) {
+    console.error('ERRO: Usuário encontrado mas sem hash_password gravado:', user);
     throw new Error('Credenciais inválidas.');
   }
 
@@ -133,17 +142,22 @@ export async function loginServices(email, password) {
     throw new Error('Credenciais inválidas.');
   }
 
-  const normalizedRole = user.role ? user.role.toUpperCase() : 'CLIENT';
+  const normalizedRole = user.role ? String(user.role).toUpperCase() : 'CLIENT';
+  const secretKey = process.env.JWT_SECRET || 'default_secret';
 
-  const token = jwt.sign(
-    { 
-      id: user.id, 
-      role: normalizedRole, 
-      company_id: user.company_id 
-    },
-    process.env.JWT_SECRET || 'default_secret',
-    { expiresIn: '1d' }
-  );
+  const payload = {
+    id: Number(user.id),
+    role: normalizedRole,
+    company_id: user.company_id ? Number(user.company_id) : null
+  };
+
+  let token;
+  try {
+    token = jwt.sign(payload, secretKey, { expiresIn: '7d' });
+  } catch (jwtErr) {
+    console.error('Erro ao assinar JWT:', jwtErr);
+    throw new Error('Erro interno ao gerar o token de acesso.');
+  }
 
   return {
     token,

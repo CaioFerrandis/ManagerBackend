@@ -13,111 +13,112 @@ export async function registerServices({ name, email, password, accountType, com
 
   const hashedPassword = await bcrypt.hash(password, 10);
 
-  const newUser = await prisma.$transaction(async (tx) => {
-    if (accountType === 'company') {
-      if (!companyName) {
-        throw new Error('Nome da empresa é obrigatório para cadastrar como empresa.');
+  const newUser = await prisma.$transaction(
+    async (tx) => {
+      if (accountType === 'company') {
+        if (!companyName) {
+          throw new Error('Nome da empresa é obrigatório para cadastrar como empresa.');
+        }
+
+        const newCompany = await tx.company.create({
+          data: {
+            name: companyName.trim(),
+          },
+        });
+
+        const ownerKey = `OWNER-${Date.now()}`;
+
+        const user = await tx.user.create({
+          data: {
+            name: name.trim(),
+            email: cleanEmail,
+            hash_password: hashedPassword,
+            role: 'OWNER',
+            company_name: companyName.trim(),
+            company_id: newCompany.id,
+            key: ownerKey,
+          },
+        });
+
+        await tx.company.update({
+          where: { id: newCompany.id },
+          data: { owner: name.trim() },
+        });
+
+        return user;
+
+      } else if (accountType === 'invite') {
+        if (!key) {
+          throw new Error('Chave de convite é obrigatória.');
+        }
+
+        const normalizedKey = key.trim().replace(/\s+/g, '');
+
+        const validKey = await tx.key.findFirst({
+          where: {
+            code: normalizedKey,
+          },
+          include: { client_info: true },
+        });
+
+        if (!validKey || validKey.status === 'USED') {
+          throw new Error('Chave de convite inválida, inexistente ou já utilizada.');
+        }
+
+        const company = await tx.company.findUnique({
+          where: { id: validKey.company_id },
+        });
+
+        if (!company) {
+          throw new Error('Empresa associada à chave não foi encontrada.');
+        }
+
+        const userRole = (validKey.role || 'CLIENT').toUpperCase();
+        const finalName = name.trim() || validKey.client_info?.nome || 'Cliente';
+
+        const user = await tx.user.create({
+          data: {
+            name: finalName,
+            email: cleanEmail,
+            hash_password: hashedPassword,
+            role: userRole,
+            company_name: company.name,
+            company_id: company.id,
+            key: validKey.code,
+          },
+        });
+
+        await tx.key.update({
+          where: { id: validKey.id },
+          data: { 
+            status: 'USED',
+            bound_user: user.email,
+            ...(validKey.client_info && {
+              client_info: {
+                update: { email: cleanEmail },
+              },
+            }),
+          },
+        });
+
+        return user;
+
+      } else {
+        throw new Error('Tipo de conta inválido.');
       }
-
-      const newCompany = await tx.company.create({
-        data: {
-          name: companyName.trim(),
-        },
-      });
-
-      const ownerKey = `OWNER-${Date.now()}`;
-
-      const user = await tx.user.create({
-        data: {
-          name: name.trim(),
-          email: cleanEmail,
-          hash_password: hashedPassword,
-          role: 'OWNER',
-          company_name: companyName.trim(),
-          company_id: newCompany.id,
-          key: ownerKey,
-        },
-      });
-
-      await tx.company.update({
-        where: { id: newCompany.id },
-        data: { owner: name.trim() },
-      });
-
-      return user;
-
-    } else if (accountType === 'invite') {
-      if (!key) {
-        throw new Error('Chave de convite é obrigatória.');
-      }
-
-      const normalizedKey = key.trim().replace(/\s+/g, '');
-
-      const validKey = await tx.key.findFirst({
-        where: {
-          OR: [
-            { code: normalizedKey },
-            { key: normalizedKey }
-          ]
-        },
-        include: { client_info: true }
-      });
-
-      if (!validKey || validKey.status === 'USED') {
-        throw new Error('Chave de convite inválida, inexistente ou já utilizada.');
-      }
-
-      const company = await tx.company.findUnique({
-        where: { id: validKey.company_id },
-      });
-
-      if (!company) {
-        throw new Error('Empresa associada à chave não foi encontrada.');
-      }
-
-      const userRole = (validKey.role || 'CLIENT').toUpperCase();
-
-      const finalName = name.trim() || validKey.client_info?.nome || 'Cliente';
-
-      const user = await tx.user.create({
-        data: {
-          name: finalName,
-          email: cleanEmail,
-          hash_password: hashedPassword,
-          role: userRole,
-          company_name: company.name,
-          company_id: company.id,
-          key: validKey.code || validKey.key,
-        },
-      });
-
-      await tx.key.update({
-        where: { id: validKey.id },
-        data: { 
-          status: 'USED',
-          bound_user: user.email,
-          ...(validKey.client_info && {
-            client_info: {
-              update: { email: cleanEmail }
-            }
-          })
-        },
-      });
-
-      return user;
-
-    } else {
-      throw new Error('Tipo de conta inválido.');
+    },
+    {
+      maxWait: 10000,
+      timeout: 20000,
     }
-  });
+  );
 
   const { hash_password: _, ...userWithoutPassword } = newUser;
   return {
     ...userWithoutPassword,
-    role: newUser.role.toUpperCase()
+    role: newUser.role.toUpperCase(),
   };
 }
-
 export async function loginServices(email, password) {
   if (!email || !password) {
     throw new Error('E-mail e senha são obrigatórios.');

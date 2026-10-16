@@ -35,7 +35,16 @@ export class AtividadeService {
       include: {
         team: { select: { id: true, name: true } },
         form: { select: { id: true, title: true, questions: true } },
-        client: { select: { id: true, name: true } },
+        client: {
+          select: {
+            id: true,
+            client_info: {
+              select: {
+                nome: true,
+              },
+            },
+          },
+        },
         equipment: { select: { id: true, nome: true } },
       },
       orderBy: [{ data: "asc" }, { horario: "asc" }],
@@ -86,7 +95,16 @@ export class AtividadeService {
         },
         include: {
           team: { select: { id: true, name: true } },
-          client: { select: { id: true, name: true } },
+          client: {
+              select: {
+                id: true,
+                client_info: {
+                  select: {
+                    nome: true,
+                  },
+                },
+              },
+            },
           equipment: { select: { id: true, nome: true } },
         },
       });

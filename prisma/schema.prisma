@@ -3,8 +3,9 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 enum Roles {
@@ -35,8 +36,6 @@ model User {
   client_info   ClientInfo?
 
   updatedAt     DateTime    @updatedAt
-
-  atividades    Atividade[]
 }
 
 model ClientInfo {
@@ -81,6 +80,7 @@ model Key {
   bound_user  String? 
 
   client_info  ClientInfo?
+  atividades Atividade[]
   equipamentos Equipamento[]
 }
 
@@ -154,8 +154,8 @@ model Atividade {
   form_id       Int?
   form          Form?           @relation(fields: [form_id], references: [id], onDelete: SetNull)
 
-  client_id     Int
-  client        User            @relation(fields: [client_id], references: [id], onDelete: Cascade)
+  client_id Int
+  client    Key @relation(fields: [client_id], references: [id], onDelete: Cascade)
 
   equipment_id  Int?
   equipment     Equipamento?    @relation(fields: [equipment_id], references: [id], onDelete: SetNull)

@@ -18,6 +18,7 @@ export class ClientService {
         client_info: {
           select: {
             id: true,
+            key_id: true,
             nome: true,
             documento: true,
             email: true,

@@ -3,7 +3,6 @@ import { ClientService } from "../services/clientes.services.js";
 const clientService = new ClientService();
 
 export class ClientController {
-  // 🔹 Lista todos os clientes
   async index(req, res) {
     try {
       const companyId = req.user?.company_id || req.query.company_id;
@@ -19,7 +18,6 @@ export class ClientController {
     }
   }
 
-  // 🔹 Cria um único cliente (Dono/Gerente cadastrando manualmente)
   async create(req, res) {
     try {
       const companyId = req.user?.company_id || req.body.company_id;
@@ -35,7 +33,6 @@ export class ClientController {
     }
   }
 
-  // 🔹 Atualiza dados do perfil do cliente
   async update(req, res) {
     try {
       const { id } = req.params;
@@ -60,7 +57,6 @@ export class ClientController {
     }
   }
 
-  // 🔹 Importação via CSV em lote
   async import(req, res) {
     try {
       const companyId = req.user?.company_id || req.body.company_id;
@@ -81,7 +77,6 @@ export class ClientController {
     }
   }
 
-  // 🔹 Exclusão em lote
   async deleteMany(req, res) {
     try {
       const companyId = req.user?.company_id || req.body.company_id;

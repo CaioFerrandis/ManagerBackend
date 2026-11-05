@@ -94,6 +94,8 @@ model Company {
   id              Int           @id @default(autoincrement())
   name            String
   owner           String?
+  cnpj            String?
+  address         String?
 
   primary_color   String?       @default("#1a2b59")
   secondary_color String?       @default("#152347")
